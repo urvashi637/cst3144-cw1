@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lesson</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+  <link rel="stylesheet" type="text/css" href="styling.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="header-content">
+        <h1 v-text="sitename"></h1>
+        <button v-on:click="showCheckout" class="checkout-button">
+          {{ cartItemCount }} <span class="fas fa-cart-plus"></span> Checkout
+        </button>
+      </div>
+    </header>
+
+    <!-- Sorting Section -->
+    <div class="sort-options">
+      <p>Sort by:</p>
+      <label>
+        <input type="radio" value="price-asc" v-model="sortCriteria"> Price (Low to High)
+      </label>
+      <label>
+        <input type="radio" value="price-desc" v-model="sortCriteria"> Price (High to Low)
+      </label>
+    </div>
+
+    <!-- Product Section -->
+    <div v-if="showProduct">
+      <main class="lesson-container">
+        <!-- First Row: Math and English -->
+        <div class="lesson-row">
+          <div class="lesson-info" v-for="lesson in sortedLessons.slice(0, 2)" :key="lesson.id">
+            <figure class="lesson-image">
+              <img v-bind:src="lesson.image" :alt="lesson.subject + ' Image'" />
+            </figure>
+            <div class="lesson-details">
+              <h2 v-text="lesson.subject"></h2>
+              <p v-text="lesson.Location"></p>
+              <p>Price: {{ lesson.price }}</p>
+              <p>Available spaces: {{ lesson.availableInventory }}</p>
+              <button v-on:click="addToCart(lesson)" v-if="canAddToCart(lesson)">Add to cart</button>
+              <button disabled='disabled' v-else>Add to cart</button>
+            </div>
+          </div>
+        </div>
+        
+      
+        <!-- Second Row: Music and Basketball -->
+        <div class="lesson-row">
+          <div class="lesson-info" v-for="lesson in sortedLessons.slice(2, 4)" :key="lesson.id">
+            <figure class="lesson-image">
+              <img v-bind:src="lesson.image" :alt="lesson.subject + ' Image'" />
+            </figure>
+            <div class="lesson-details">
+              <h2 v-text="lesson.subject"></h2>
+              <p v-text="lesson.Location"></p>
+              <p>Price: {{ lesson.price }}</p>
+              <p>Available spaces: {{ lesson.availableInventory }}</p>
+              <button v-on:click="addToCart(lesson)" v-if="canAddToCart(lesson)">Add to cart</button>
+              <button disabled='disabled' v-else>Add to cart</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+
+<!-- Checkout Section -->
+<div v-else class="checkout-page"> <!-- Added checkout-page class -->
+  <h2>Lessons in Cart</h2>
+  <ul>
+    <li v-for="(item, index) in cart" :key="item.lesson.id">
+      {{ item.lesson.subject }} - {{ item.lesson.price }} dhs (Quantity: {{ item.quantity }})
+      <button v-on:click="decreaseQuantity(index)" v-if="item.quantity > 1">-</button>
+      <button v-on:click="increaseQuantity(index)" v-if="item.quantity < 5">+</button>
+      <button v-on:click="removeFromCart(index)">Remove</button>
+    </li>
+  </ul>
+  <h3>Total: {{ cartTotal }} dhs</h3>
+
+  <h2>Checkout</h2>
+  <p>
+    <strong>First Name:</strong>
+    <input v-model="order.firstName">
+  </p>
+  <p>
+    <strong>Last Name:</strong>
+    <input v-model="order.lastName">  
+  </p>
+  <p> <strong>Address:</strong><input v-model="order.address"></p>
+  
+  <p>
+    <strong>Phone number:</strong>
+    <input v-model.number="order.phone" type="number"/>
+  </p>
+  <p>
+    <strong>Zip/Postal:</strong>
+    <input v-model="order.zip">
+  </p>
+
+  <h2>Order Information</h2>
+  <p>First Name: {{order.firstName}}</p>
+  <p>Last Name: {{order.lastName}}</p>
+  <p>Address: {{order.address}}</p>
+  <p>Phone number: {{order.phone}}</p>
+  <p>Zip: {{order.zip}}</p>
+  <button v-on:click="submitForm">Place Order</button>
+  <button v-on:click="showCheckout">Go back to products</button>
+</div>
+</div>
+
+<script type="text/JavaScript">
+let webstore = new Vue({
+  el: '#app',
+  data: {
+    sitename: "After School Club",
+    showProduct: true,
+    sortCriteria: 'price-asc', // Default sorting by price ascending
+    lessons: [
+      {
+        id: 1,
+        subject: "Math",
+        Location: "London",
+        price: 100,
+        image: "image/math.jpg", 
+        availableInventory: 5
+      },
+      {
+        id: 2,
+        subject: "English",
+        Location: "London",
+        price: 80,
+        image: "image/english.png", 
+        availableInventory: 5
+      },
+      {
+        id: 3,
+        subject: "Music",
+        Location: "Columbia",
+        price: 140,
+        image: "image/music.png", 
+        availableInventory: 5
+      },
+      {
+        id: 4,
+        subject: "Basketball",
+        Location: "Turkey",
+        price: 120,
+        image: "image/basketball1.png", 
+        availableInventory: 5
+      }
+    ],
+    cart: [],
+    order: {
+      firstName: '',
+      lastName: '',
+      address: '',
+      zip: '',
+      phone: ''
+    }
+  },
+  methods: {
+    addToCart: function(lesson) {
+      const existingItem = this.cart.find(item => item.lesson.id === lesson.id);
+      if (existingItem) {
+        if (existingItem.quantity < 5) { // Max limit of 5
+          existingItem.quantity++;
+        }
+      } else {
+        this.cart.push({ lesson: lesson, quantity: 1 });
+      }
+      lesson.availableInventory--;
+    },
+    removeFromCart: function(index) {
+      const item = this.cart[index];
+      item.lesson.availableInventory += item.quantity;
+      this.cart.splice(index, 1);
+    },
+    decreaseQuantity: function(index) {
+      const item = this.cart[index];
+      if (item.quantity > 1) {
+        item.quantity--;
+        item.lesson.availableInventory++;
+      } else {
+        this.removeFromCart(index); // Remove if quantity is 1
+      }
+    },
+    increaseQuantity: function(index) {
+      const item = this.cart[index];
+      if (item.quantity < 5) { // Max limit of 5
+        item.quantity++;
+        item.lesson.availableInventory--;
+      }
+    },
+    showCheckout: function() {
+      this.showProduct = !this.showProduct;
+    },
+    submitForm: function() {
+      alert("Order placed!");
+      this.cart = []; // Clear cart after placing order
+      this.showProduct = true; // Show product page again
+    },
+    canAddToCart: function(lesson) {
+      return lesson.availableInventory > 0;
+    }
+  },
+  computed: {
+    cartItemCount: function() {
+      return this.cart.reduce((count, item) => count + item.quantity, 0);
+    },
+    cartTotal: function() {
+      return this.cart.reduce((total, item) => total + item.lesson.price * item.quantity, 0);
+    },
+    sortedLessons: function() {
+      return this.lessons.slice().sort((a, b) => {
+        if (this.sortCriteria === 'price-asc') {
+          return a.price - b.price;
+        } else if (this.sortCriteria === 'price-desc') {
+          return b.price - a.price;
+        }
+        return 0; // Default case (should not be hit)
+      });
+    }
+  }
+});
+</script>
+</body>
+</html>
